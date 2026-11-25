@@ -1,0 +1,14 @@
+{
+  "name": "jijian-reader",
+  "productName": "极简阅读器",
+  "version": "1.0.0",
+  "description": "EPUB / MOBI / AZW3 / PDF / TXT reader in a single HTML file",
+  "main": "main.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "22.3.27"
+  }
+}

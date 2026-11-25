@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>极简阅读器 — 电子书与漫画阅读器</title>
+<meta name="description" content="极简阅读器：支持 EPUB / MOBI / AZW3 / PDF / TXT 及 ZIP/RAR 漫画压缩包，目录导航、全文搜索、进度记忆、读书笔记与本地加密。全功能免费试用一个月，激活授权后继续使用，兼容 Windows 7/8。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232F5D50'/%3E%3Cpath d='M9 9.5h14v2.2H11.2v3.6H22v2.2H11.2v5H9z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap">
+<style>
+  :root{
+    --paper:#FBFBF8;
+    --card:#FFFFFF;
+    --ink:#1B1E1C;
+    --ink-2:#5C625E;
+    --line:#E7E8E2;
+    --accent:#2F5D50;
+    --accent-2:#24493E;
+    --accent-soft:#EDF2EF;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif;
+    color:var(--ink);background:var(--paper);line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit}
+  ul{list-style:none}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+
+  /* ===== 导航 ===== */
+  header{position:sticky;top:0;z-index:50;background:rgba(251,251,248,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand-mark{width:34px;height:34px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+  .brand-mark svg{width:20px;height:20px}
+  .brand-name{font-size:17px;font-weight:700;letter-spacing:.3px}
+  .brand-tag{font-size:12px;color:var(--ink-2)}
+  .nav-links{display:flex;align-items:center;gap:30px;font-size:14.5px;color:var(--ink-2)}
+  .nav-links a{transition:color .15s}
+  .nav-links a:hover,.nav-links a.active{color:var(--accent)}
+  .nav-toggle{display:none;background:none;border:0;cursor:pointer}
+
+  /* ===== Hero ===== */
+  .hero{padding:88px 0 72px;border-bottom:1px solid var(--line)}
+  .hero-inner{max-width:680px}
+  .hero .eyebrow{font-size:13px;font-weight:500;color:var(--accent);letter-spacing:1px;margin-bottom:18px}
+  .hero h1{font-size:40px;font-weight:900;line-height:1.3;letter-spacing:.5px}
+  .hero p.lead{margin:22px 0 0;font-size:17px;color:var(--ink-2);max-width:52ch}
+  .hero-actions{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;border-radius:9px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;border:1.5px solid transparent;transition:background .15s,color .15s,border-color .15s,transform .15s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-2)}
+  .btn-ghost{border-color:var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .hero-meta{display:flex;gap:32px;margin-top:44px;flex-wrap:wrap;padding-top:28px;border-top:1px solid var(--line)}
+  .meta b{display:block;font-size:20px;font-weight:700}
+  .meta span{font-size:13px;color:var(--ink-2)}
+
+  /* ===== 区块通用 ===== */
+  section{padding:68px 0}
+  .sec-head{max-width:560px;margin:0 auto 44px;text-align:center}
+  .sec-head h2{font-size:28px;font-weight:900}
+  .sec-head p{margin-top:10px;color:var(--ink-2);font-size:15.5px}
+  .alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  /* ===== 卡片网格 ===== */
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;transition:border-color .15s}
+  .card:hover{border-color:#C9D2CC}
+  .card .ico{width:38px;height:38px;border-radius:9px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;margin-bottom:15px}
+  .card .ico svg{width:20px;height:20px;stroke:var(--accent)}
+  .card h3{font-size:15.5px;font-weight:700}
+  .card p{margin-top:7px;font-size:13.5px;color:var(--ink-2)}
+
+  /* ===== 隐私条 ===== */
+  .safe-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+  .safe h3{font-size:15px;font-weight:700;margin-bottom:7px}
+  .safe h3::before{content:"";display:block;width:22px;height:2px;background:var(--accent);margin-bottom:12px}
+  .safe p{font-size:13.5px;color:var(--ink-2)}
+
+  /* ===== FAQ ===== */
+  .faq{max-width:720px;margin:0 auto}
+  .faq-item{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+  .faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:19px 22px;font-size:15.5px;font-weight:700;background:none;border:0;cursor:pointer;text-align:left;font-family:inherit}
+  .faq-q .chev{flex:none;transition:transform .2s;color:var(--accent)}
+  .faq-item.open .chev{transform:rotate(180deg)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+  .faq-a p{padding:0 22px 18px;color:var(--ink-2);font-size:14.5px}
+
+  /* ===== CTA ===== */
+  .cta{background:var(--accent-soft);border:1px solid #DCE6E0;border-radius:18px;padding:52px 32px;text-align:center}
+  .cta h2{font-size:26px;font-weight:900}
+  .cta p{margin:12px auto 0;max-width:48ch;color:var(--ink-2)}
+  .cta .hero-actions{justify-content:center}
+  .cta .btn-ghost{background:#fff}
+
+  /* ===== 页脚 ===== */
+  footer{border-top:1px solid var(--line);padding:30px 0}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;color:var(--ink-2);font-size:13.5px}
+
+  /* ===== 响应式 ===== */
+  @media (max-width:900px){
+    .grid-4{grid-template-columns:repeat(2,1fr)}
+    .grid-3{grid-template-columns:repeat(2,1fr)}
+    .safe-grid{grid-template-columns:repeat(2,1fr)}
+    .hero h1{font-size:32px}
+  }
+  @media (max-width:600px){
+    .nav-links{display:none;position:absolute;top:64px;left:0;right:0;background:var(--paper);flex-direction:column;gap:0;border-bottom:1px solid var(--line);padding:8px 0}
+    .nav-links.show{display:flex}
+    .nav-links a{padding:13px 24px;width:100%}
+    .nav-toggle{display:block}
+    .grid-4,.grid-3,.safe-grid{grid-template-columns:1fr}
+    section{padding:48px 0}
+    .hero{padding:56px 0 48px}
+    .hero h1{font-size:27px}
+    .hero-meta{gap:20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 导航 ===== -->
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 5h12v1.8H7.8v3.4h9v1.8h-9v4.6H6z" fill="#fff"/></svg>
+      </span>
+      <span>
+        <span class="brand-name">极简阅读器</span>
+        <span class="brand-tag" style="display:block">本地优先 · 多格式</span>
+      </span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单">
+      <svg width="24" height="24" viewBox="0 0 24 24" stroke="#1B1E1C" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <nav class="nav-links" id="navLinks">
+      <a href="#top" class="active">首页</a>
+      <a href="#download">下载</a>
+      <a href="#formats">功能介绍</a>
+      <a href="#faq">常见问题</a>
+      <a href="#about">关于</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== Hero ===== -->
+<section class="hero" id="top">
+  <div class="wrap hero-inner">
+    <div class="eyebrow">电子书 / 漫画 桌面阅读器</div>
+    <h1>安静、轻量的<br>本地阅读工具</h1>
+    <p class="lead">基于 Electron 构建，打开 EPUB、MOBI、AZW3、PDF、TXT 与 ZIP/RAR 漫画压缩包。目录导航、全文搜索、进度记忆、读书笔记、本地加密上锁一应俱全；安装即可免费试用一个月，兼容 Windows 7/8。</p>
+    <div class="hero-actions" id="download">
+      <a class="btn btn-primary" href="#download">免费下载</a>
+      <a class="btn btn-ghost" href="#formats">了解功能</a>
+    </div>
+    <div class="hero-meta">
+      <div class="meta"><b>9+</b><span>支持格式</span></div>
+      <div class="meta"><b>离线</b><span>授权本地验签</span></div>
+      <div class="meta"><b>Win7/8</b><span>老系统兼容</span></div>
+      <div class="meta"><b>1 个月</b><span>全功能免费试用</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 支持格式 ===== -->
+<section id="formats">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>多格式解析</h2>
+      <p>小说、文档、漫画一册收纳，常见格式开箱即读</p>
+    </div>
+    <div class="grid-4">
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/></svg></div>
+        <h3>EPUB</h3>
+        <p>标准流式电子书，自动解析章节目录，按屏幕宽度重排。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+        <h3>MOBI</h3>
+        <p>Kindle 早期小说格式，兼容存量 MOBI 书库直接打开。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/></svg></div>
+        <h3>AZW / AZW3</h3>
+        <p>Kindle 原生格式，支持更复杂的排版与样式还原。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 2h12l3 5v15H3V7z"/><path d="M9 12h6M9 16h6"/></svg></div>
+        <h3>PDF</h3>
+        <p>固定版式文档，多档缩放与翻页，适合扫描版与图文资料。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
+        <h3>TXT</h3>
+        <p>纯文本文档，体积小、打开快，长篇小说即开即读。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 5-5 3 3 3-3 3 3"/></svg></div>
+        <h3>CBZ / CBR 漫画</h3>
+        <p>ZIP / RAR 压缩包内的图片漫画，按顺序逐页浏览。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></div>
+        <h3>PDB / AZW</h3>
+        <p>Palm 与旧版 Kindle 格式，打开年代较早的存量电子书。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/></svg></div>
+        <h3>持续扩展</h3>
+        <p>解析链路预留扩展能力，后续可按书库需求补充格式。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 阅读功能 ===== -->
+<section class="alt" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>阅读功能</h2>
+      <p>围绕长时间阅读设计，顺手而不打扰</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 5h16M4 10h10M4 15h16M4 20h10"/></svg></div>
+        <h3>目录导航</h3>
+        <p>自动解析章节结构，侧边栏目录快速跳转对应章节。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+        <h3>全文搜索</h3>
+        <p>关键词全文检索，快速定位所在章节与段落。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+        <h3>进度记忆</h3>
+        <p>自动记住阅读位置与历史记录，下次一键回到原处。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 20h16"/><path d="M6 16l5-5 3 3 4-6"/></svg></div>
+        <h3>读书笔记</h3>
+        <p>随手记录心得，导出 Markdown / TXT；记住目录，重复保存静默覆盖。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M11 8v3l2 2M20 20l-3-3"/></svg></div>
+        <h3>缩放与翻页</h3>
+        <p>多档缩放与翻页方式，适配不同屏幕与阅读距离。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+        <h3>本地加密上锁</h3>
+        <p>应用锁屏、单本文档上锁、笔记上锁；密码只存哈希，不落明文。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <h3>离线授权</h3>
+        <p>一个月试用期满后，输入授权码即可继续阅读；RSA 本地验签，绑定机器码，全程不联网。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h3>老系统兼容</h3>
+        <p>基于 Electron 22.3.27，最后一代仍支持 Windows 7/8 的底座。</p>
+      </div>
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>历史记录重开</h3>
+        <p>最近打开的书按路径留存，再次阅读直接读取，无需重复选文件。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 隐私 ===== -->
+<section id="about">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>本地优先，数据不出本机</h2>
+      <p>书籍、笔记与授权信息全部保存在本地，阅读行为不上报</p>
+    </div>
+    <div class="safe-grid">
+      <div class="safe">
+        <h3>密码只存哈希</h3>
+        <p>锁屏、文档、笔记密码均以散列值存储，页面与主进程都拿不到明文。</p>
+      </div>
+      <div class="safe">
+        <h3>笔记密钥派生</h3>
+        <p>笔记加密密钥由密码经 PBKDF2 派生，主进程全程不接触明文与密钥。</p>
+      </div>
+      <div class="safe">
+        <h3>授权离线校验</h3>
+        <p>授权码靠内置公钥本地验签，绑定机器码，校验不发起网络请求。</p>
+      </div>
+      <div class="safe">
+        <h3>文件本地读写</h3>
+        <p>书籍读取与笔记写入走原生文件通道，不经过云端，换目录也能识别已上锁的书。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="alt" id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>常见问题</h2>
+      <p>关于免费试用、激活收费、隐私与老系统兼容的疑问</p>
+    </div>
+    <div class="faq">
+      <div class="faq-item">
+        <button class="faq-q">要收费吗？可以先试用吗？<span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="faq-a"><p>安装后可直接使用全部功能，免费试用一个月。试用期满后，程序将无法再打开书籍文件，需要输入授权码激活后才能继续阅读。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">我的书和笔记会被上传吗？<span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="faq-a"><p>不会。所有书籍读取、笔记写入都在本机完成，授权校验也是离线验签，应用不上传书摘、笔记或阅读记录。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">支持哪些漫画格式？<span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="faq-a"><p>支持以 ZIP / RAR 打包图片的漫画压缩包（CBZ / CBR），打开后按图片顺序逐页浏览。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">配置较低的老电脑能用吗？<span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="faq-a"><p>可以。运行底座采用 Electron 22.3.27，是最后一代仍支持 Windows 7/8 的版本，老机器与旧系统也能正常安装使用。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">忘记锁屏密码怎么办？<span class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></button>
+        <div class="faq-a"><p>锁屏密码以单独配置文件保存，遗忘后删除该配置文件即可重置，不会影响已保存的阅读进度与笔记目录。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section>
+  <div class="wrap">
+    <div class="cta">
+      <h2>开始本地阅读</h2>
+      <p>轻量启动、多格式通吃、隐私留在本机。下载即可免费试用一个月，把电子书与漫画收进一个安静的阅读器。</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#download">免费下载</a>
+        <a class="btn btn-ghost" href="#faq">查看常见问题</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 页脚 ===== -->
+<footer>
+  <div class="wrap foot">
+    <div><span class="brand-name">极简阅读器</span><span style="margin-left:10px">v1.0.0 · 本地优先的电子书与漫画阅读器</span></div>
+    <div>MIT 协议 · 仅供学习与调试使用</div>
+  </div>
+</footer>
+
+<script>
+  var toggle = document.getElementById('navToggle');
+  var links = document.getElementById('navLinks');
+  toggle.addEventListener('click', function () { links.classList.toggle('show'); });
+  links.addEventListener('click', function (e) { if (e.target.tagName === 'A') links.classList.remove('show'); });
+
+  document.querySelectorAll('.faq-q').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var item = btn.parentElement;
+      var answer = item.querySelector('.faq-a');
+      var isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(function (o) {
+        o.classList.remove('open');
+        o.querySelector('.faq-a').style.maxHeight = null;
+      });
+      if (!isOpen) { item.classList.add('open'); answer.style.maxHeight = answer.scrollHeight + 'px'; }
+    });
+  });
+
+  var sections = ['top', 'formats', 'faq', 'about'];
+  var navMap = {};
+  document.querySelectorAll('.nav-links a').forEach(function (a) { navMap[a.getAttribute('href').slice(1)] = a; });
+  window.addEventListener('scroll', function () {
+    var y = window.scrollY + 100, current = 'top';
+    sections.forEach(function (id) { var el = document.getElementById(id); if (el && el.offsetTop <= y) current = id; });
+    Object.keys(navMap).forEach(function (k) { navMap[k].classList.remove('active'); });
+    if (navMap[current]) navMap[current].classList.add('active');
+  });
+</script>
+</body>
+</html>
